@@ -1,0 +1,19 @@
+{{- if .Values.s3www.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "s3www.fullname" . }}
+  labels:
+    {{- include "s3www.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.s3www.port }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "s3www.selectorLabels" . | nindent 4 }}
+{{- end }}
+
+

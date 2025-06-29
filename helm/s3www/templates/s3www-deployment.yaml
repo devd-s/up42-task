@@ -1,0 +1,81 @@
+{{- if .Values.s3www.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "s3www.fullname" . }}
+  labels:
+    {{- include "s3www.labels" . | nindent 4 }}
+spec:
+  {{- if not (and .Values.autoscaling .Values.autoscaling.s3www .Values.autoscaling.s3www.enabled) }}
+  replicas: {{ .Values.s3www.replicas | default .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "s3www.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "s3www.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "s3www.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.s3www.image }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "-bucket={{ .Values.s3www.bucket }}"
+            - "-endpoint=http://minio:{{ .Values.minio.port }}"
+            - "-address=0.0.0.0:{{ .Values.s3www.port }}"
+          ports:
+            - containerPort: {{ .Values.s3www.port }}
+          env:
+            - name: {{ .Values.s3www.env.accessKeyName | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (printf "%s-credentials" (include "s3www.fullname" .)) }}
+                  key: {{ .Values.minio.secretKeys.accessKeyKey }}
+            - name: {{ .Values.s3www.env.secretKeyName | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (printf "%s-credentials" (include "s3www.fullname" .)) }}
+                  key: {{ .Values.minio.secretKeys.secretKeyKey }}
+          {{- with .Values.s3www.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            {{- toYaml .Values.volumeMounts | nindent 12 }}
+      volumes:
+        {{- toYaml .Values.volumes | nindent 8 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

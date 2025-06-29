@@ -1,0 +1,22 @@
+{{- if and .Values.autoscaling (and .Values.autoscaling.minio (eq .Values.autoscaling.minio.enabled true)) }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "s3www.minioFullname" . }}
+  labels:
+    {{- include "s3www.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "s3www.minioFullname" . }}
+  minReplicas: {{ .Values.autoscaling.minio.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.minio.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.minio.targetCPUUtilizationPercentage }}
+{{- end }}

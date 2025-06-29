@@ -1,0 +1,188 @@
+# Default values for s3www.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Default values for s3www-stack
+global:
+  environment: development
+
+# replicaCount: 1
+
+image:
+  repository: s3www
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "s3www"
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+# securityContext: 
+#   capabilities:
+#     drop:
+#     - ALL
+#   readOnlyRootFilesystem: true
+#   runAsNonRoot: true
+#   runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: 
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: s3www.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: s3www-tls
+  #    hosts:
+  #      - s3www.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+readinessProbe:
+  httpGet:
+    path: /
+    port: http
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+s3www:
+  enabled: true
+  image: y4m4/s3www:latest
+  port: 8080
+  bucket: s3www-content
+  # minReplicas: 2
+  # maxReplicas: 5
+  # targetCPUUtilizationPercentage: 80
+  name: s3www
+  replicas: 2
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    accessKeyName: AWS_ACCESS_KEY_ID
+    secretKeyName: AWS_SECRET_ACCESS_KEY
+
+# autoscaling:
+#   s3www:
+#     enabled: true
+#     minReplicas: 2
+#     maxReplicas: 5
+#     targetCPUUtilizationPercentage: 80
+
+minio:
+  name: minio
+  replicas: 3
+  # minReplicas: 2
+  # maxReplicas: 4
+  # targetCPUUtilizationPercentage: 70
+  enabled: true
+  image: quay.io/minio/minio:latest
+  # accessKey: minioadmin
+  # secretKey: minioadmin
+  accessKey: ""  # used only if existingSecret is not defined
+  secretKey: ""
+  existingSecret: minio-credentials
+  secretKeys:
+    accessKeyKey: accesskey
+    secretKeyKey: secretkey
+  bucketName: s3www-content
+  port: 9000
+  consolePort: 9090
+  service:
+    type: ClusterIP
+    labels:
+      app.kubernetes.io/component: minio
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9000"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  extraArgs:
+    - server
+    - /data
+    - "--console-address"
+    - ":9090"
+  persistence:
+    enabled: true
+    storageClass: standard  # or whatever your cluster supports
+    accessMode: ReadWriteOnce
+    size: 1Gi
+
+fileToServe: |
+  Hello from Helm chart!
+

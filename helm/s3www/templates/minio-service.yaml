@@ -1,0 +1,30 @@
+{{- if .Values.minio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "s3www.minioFullname" . }}
+  labels:
+    {{- include "s3www.labels" . | nindent 4 }}
+    {{- with .Values.minio.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.minio.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.minio.service.type | default "ClusterIP" }}
+  selector:
+    app: {{ .Values.minio.name }}
+  ports:
+    - name: api
+      port: {{ .Values.minio.port }}
+      targetPort: {{ .Values.minio.port }}
+    {{- if .Values.minio.consolePort }}
+    - name: console
+      port: {{ .Values.minio.consolePort }}
+      targetPort: {{ .Values.minio.consolePort }}
+    {{- end }}
+{{- end }}
+
+
