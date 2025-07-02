@@ -405,7 +405,7 @@ For production deployment, consider implementing these improvements:
 #### MinIO in Distributed Mode can installed as sts
 
 # StatefulSet with multiple PVCs
-'''
+´´´
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -421,4 +421,25 @@ spec:
       resources:
         requests:
           storage: 1Gi
-'''
+´´´
+
+### For terrafrom state management a remote backend bucket can be added to keep the state
+´´´
+terraform {
+
+  backend "s3" {
+
+    bucket          = “MY_BUCKET”
+
+    key               = “PATH/TO/KEY”
+
+    region           = “MY_REGION”
+
+    access_key  = “AWS_ACCESS_KEY” # Can be passed from aws account profile
+
+    secret_key	 = “AWS_SECRET_KEY” # Can be passed from aws account profile
+
+  }
+
+}
+´´´
