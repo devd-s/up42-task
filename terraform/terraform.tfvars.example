@@ -1,0 +1,10 @@
+# Example Terraform variables file
+# Copy this file to terraform.tfvars and customize values
+
+# MinIO credentials (defaults to minioadmin/minioadmin123 if not set)
+# minio_access_key = "your-custom-access-key"
+# minio_secret_key = "your-custom-secret-key"
+
+# Alternative: Use environment variables
+# export TF_VAR_minio_access_key="your-custom-access-key"
+# export TF_VAR_minio_secret_key="your-custom-secret-key"

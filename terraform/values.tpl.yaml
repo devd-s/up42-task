@@ -1,0 +1,98 @@
+global:
+  bucketName: "${bucket_name}"
+
+fullnameOverride: "s3www"  # Ensuring consistent naming
+
+s3www:
+  enabled: true
+  image: y4m4/s3www:latest
+  port: 8080
+
+minio:
+  enabled: true
+  image: quay.io/minio/minio:latest
+  accessKey: "${minio_access_key}"
+  secretKey: "${minio_secret_key}"
+  port: 9000
+  consolePort: 9090
+  persistence:
+    enabled: true
+    size: "${storage_size}"
+    accessMode: ReadWriteOnce
+    storageClass: standard
+
+# Horizontal Pod Autoscaler configuration
+autoscaling:
+  # s3www HPA configuration
+  s3www:
+    enabled: false  # Can be enabled to autoscale s3www pods based on metrics
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    annotations: {}
+    # Advanced scaling behavior (optional)
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+        selectPolicy: Max
+  
+  # MinIO HPA configuration  
+  minio:
+    enabled: false  # Can be enabled to autoscale MinIO pods based on metrics
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 85
+    annotations: {}
+
+# Upload job configuration
+uploadJob:
+  # Job execution settings
+  backoffLimit: 3  # Number of retries before considering job failed
+  
+  # Automatic cleanup settings
+  ttlSecondsAfterFinished: 600  # Delete job 10 minutes after completion (null = keep forever)
+
+fileToServe: |
+  Hello from Helm chart!
+
+# Prometheus monitoring configuration
+prometheus:
+  # Metrics port for s3www application
+  metricsPort: 9091
+  
+  # ServiceMonitor configuration for Prometheus Operator
+  serviceMonitor:
+    enabled: false  # Set to true when metrics are implemented in s3www
+    port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+    annotations: {}
+    selector: {}
+    namespaceSelector: {}
+    relabelings: []
+    metricRelabelings: []
+    tlsConfig: {}
+  
+  # Service annotations for Prometheus scraping (alternative to ServiceMonitor)
+  service:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9091"
+      prometheus.io/path: "/metrics"
