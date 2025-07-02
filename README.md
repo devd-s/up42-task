@@ -5,7 +5,7 @@ A production-ready IaC solution for deploying a static website service which is 
 For the sake of simplicity using deployment with volume mounts to keep the persistent state of upload file
 
 ## Architecture Overview
-
+```mermaid
 
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │                 │    │                  │    │                 │
@@ -24,7 +24,7 @@ For the sake of simplicity using deployment with volume mounts to keep the persi
                     │  • Upload Job   | 
                     |  • HPA's        | 
                     └─────────────────┘
-
+```
 
 ## Components
 
