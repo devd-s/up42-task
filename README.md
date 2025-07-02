@@ -5,26 +5,10 @@ A production-ready IaC solution for deploying a static website service which is 
 For the sake of simplicity using deployment with volume mounts to keep the persistent state of upload file
 
 ## Architecture Overview
-```mermaid
 
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│                 │    │                  │    │                 │
-│   Terraform     │───▶│   Helm Chart     │───▶│   Kubernetes    │
-│   (IaC)         │    │   (s3www)        │    │   (Cluster)     │
-│                 │    │                  │    │                 │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │  Components:    │
-                    │  • s3www pods   │
-                    │  • MinIO pods   │
-                    │  • Services     │
-                    │  • PVCs         │
-                    │  • Upload Job   | 
-                    |  • HPA's        | 
-                    └─────────────────┘
-```
+
+<img width="660" alt="Screenshot 2025-07-02 at 10 23 16 AM" src="https://github.com/user-attachments/assets/bdfe31e7-8999-4cf8-bf5e-e3fe80ccb702" />
+
 
 ## Components
 
