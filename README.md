@@ -43,18 +43,17 @@ For the sake of simplicity using deployment with volume mounts to keep the persi
 
 ### Quick Setup with Kind
 
-
+```yaml
 # Create local Kubernetes cluster
 cat <<EOF | kind create cluster --name s3www-cluster --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
-  extraPortMappings:
-  - containerPort: 30080
-    hostPort: 8080
+- role: worker
+- role: worker
 EOF
-
+```
 
 # Set up storage class (for Kind) 
 kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
@@ -320,7 +319,7 @@ curl http://localhost:9091/metrics
 
 ### Configuration Examples
 
-
+```yaml
 # Production-ready configurations which can be implemented based on needs
 autoscaling:
   s3www:
@@ -360,10 +359,10 @@ affinity:
             operator: In
             values: [s3www]
         topologyKey: kubernetes.io/hostname
-
+```
 
 #### 2. Multiple PVCs (Distributed Storage)
-
+```yaml
 # Create separate PVCs for each node
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -384,7 +383,7 @@ spec:
   resources:
     requests:
       storage: 1Gi
-
+```
 
 ## Production Enhancements
 
