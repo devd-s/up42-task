@@ -405,6 +405,7 @@ For production deployment, consider implementing these improvements:
 #### MinIO in Distributed Mode can installed as sts
 
 # StatefulSet with multiple PVCs
+'''
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -420,4 +421,4 @@ spec:
       resources:
         requests:
           storage: 1Gi
-
+'''
