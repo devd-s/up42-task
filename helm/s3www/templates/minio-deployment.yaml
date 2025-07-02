@@ -6,7 +6,9 @@ metadata:
   labels:
     {{- include "s3www.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.autoscaling.minio.enabled }}
   replicas: {{ .Values.minio.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "s3www.minioSelectorLabels" . | nindent 6 }}

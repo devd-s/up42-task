@@ -3,10 +3,13 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: upload-content-{{ randAlphaNum 5 | lower }}
+  labels:
+    {{- include "s3www.labels" . | nindent 4 }}
+    job-type: upload
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "1"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   backoffLimit: 3
   template:
@@ -15,24 +18,40 @@ spec:
       containers:
         - name: uploader
           image: minio/mc
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (printf "%s-credentials" (include "s3www.fullname" .)) }}
+                  key: {{ .Values.minio.secretKeys.accessKeyKey }}
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (printf "%s-credentials" (include "s3www.fullname" .)) }}
+                  key: {{ .Values.minio.secretKeys.secretKeyKey }}
           command:
             - /bin/sh
             - -c
             - |
-              set -e
               echo {{ .Values.fileToServe | quote }} > /tmp/index.html
               touch /tmp/favicon.ico
 
               echo "Waiting for MinIO..."
-              until mc alias set local http://minio:{{ .Values.minio.port }} {{ .Values.minio.accessKey }} {{ .Values.minio.secretKey }} >/dev/null 2>&1; do
+              until mc alias set local http://{{ include "s3www.minioFullname" . }}:{{ .Values.minio.port }} "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" >/dev/null 2>&1; do
                 echo "Still waiting for MinIO..."
                 sleep 2
               done
 
-              echo "MinIO is ready. Uploading files..."
-              mc mb --ignore-existing local/{{ .Values.minio.bucketName }}
-              mc cp /tmp/index.html local/{{ .Values.minio.bucketName }}/index.html
-              mc cp /tmp/favicon.ico local/{{ .Values.minio.bucketName }}/favicon.ico
-
-              echo "Upload complete!"
+              echo "MinIO is ready. Checking if files already exist..."
+              mc mb --ignore-existing local/{{ .Values.global.bucketName }}
+              
+              # Check if index.html already exists
+              if mc stat local/{{ .Values.global.bucketName }}/index.html >/dev/null 2>&1; then
+                echo "Files already exist in bucket. Skipping upload."
+              else
+                echo "Bucket is empty. Uploading files..."
+                mc cp /tmp/index.html local/{{ .Values.global.bucketName }}/index.html
+                mc cp /tmp/favicon.ico local/{{ .Values.global.bucketName }}/favicon.ico
+                echo "Upload complete!"
+              fi
 {{- end }}

@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "s3www.labels" . | nindent 4 }}
 spec:
-  {{- if not (and .Values.autoscaling .Values.autoscaling.s3www .Values.autoscaling.s3www.enabled) }}
+  {{- if not .Values.autoscaling.s3www.enabled }}
   replicas: {{ .Values.s3www.replicas | default .Values.replicaCount }}
   {{- end }}
   selector:
@@ -32,11 +32,18 @@ spec:
           image: "{{ .Values.s3www.image }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "-bucket={{ .Values.s3www.bucket }}"
-            - "-endpoint=http://minio:{{ .Values.minio.port }}"
+            - "-bucket={{ .Values.global.bucketName }}"
+            - "-endpoint=http://{{ include "s3www.minioFullname" . }}:{{ .Values.minio.port }}"
             - "-address=0.0.0.0:{{ .Values.s3www.port }}"
           ports:
-            - containerPort: {{ .Values.s3www.port }}
+            - name: http
+              containerPort: {{ .Values.s3www.port }}
+              protocol: TCP
+            {{- if .Values.prometheus.metricsPort }}
+            - name: metrics
+              containerPort: {{ .Values.prometheus.metricsPort }}
+              protocol: TCP
+            {{- end }}
           env:
             - name: {{ .Values.s3www.env.accessKeyName | quote }}
               valueFrom:

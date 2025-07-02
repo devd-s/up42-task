@@ -1,10 +1,14 @@
-{{- if and .Values.autoscaling (and .Values.autoscaling.minio (eq .Values.autoscaling.minio.enabled true)) }}
+{{- if and .Values.minio.enabled .Values.autoscaling.minio.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "s3www.minioFullname" . }}
   labels:
-    {{- include "s3www.labels" . | nindent 4 }}
+    {{- include "s3www.minioLabels" . | nindent 4 }}
+  {{- with .Values.autoscaling.minio.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -13,10 +17,24 @@ spec:
   minReplicas: {{ .Values.autoscaling.minio.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.minio.maxReplicas }}
   metrics:
+    {{- if .Values.autoscaling.minio.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.minio.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.minio.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.minio.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  {{- with .Values.autoscaling.minio.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}

@@ -45,7 +45,7 @@ Labels for selector matching (s3www).
 */}}
 {{- define "s3www.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "s3www.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ include "s3www.fullname" . }}
 {{- end }}
 
 {{/*
@@ -64,7 +64,7 @@ MinIO specific selector labels.
 */}}
 {{- define "s3www.minioSelectorLabels" -}}
 app.kubernetes.io/name: minio
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ include "s3www.fullname" . }}
 {{- end }}
 
 {{/*

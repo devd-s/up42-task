@@ -15,7 +15,7 @@ metadata:
 spec:
   type: {{ .Values.minio.service.type | default "ClusterIP" }}
   selector:
-    app: {{ .Values.minio.name }}
+    {{- include "s3www.minioSelectorLabels" . | nindent 4 }}
   ports:
     - name: api
       port: {{ .Values.minio.port }}

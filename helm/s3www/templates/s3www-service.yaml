@@ -5,6 +5,10 @@ metadata:
   name: {{ include "s3www.fullname" . }}
   labels:
     {{- include "s3www.labels" . | nindent 4 }}
+  {{- with .Values.prometheus.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -12,6 +16,12 @@ spec:
       targetPort: {{ .Values.s3www.port }}
       protocol: TCP
       name: http
+    {{- if .Values.prometheus.metricsPort }}
+    - port: {{ .Values.prometheus.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
   selector:
     {{- include "s3www.selectorLabels" . | nindent 4 }}
 {{- end }}

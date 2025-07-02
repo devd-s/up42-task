@@ -1,10 +1,14 @@
-{{- if and .Values.autoscaling .Values.autoscaling.s3www .Values.autoscaling.s3www.enabled }}
+{{- if and .Values.s3www.enabled .Values.autoscaling.s3www.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "s3www.fullname" . }}
   labels:
     {{- include "s3www.labels" . | nindent 4 }}
+  {{- with .Values.autoscaling.s3www.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -13,10 +17,24 @@ spec:
   minReplicas: {{ .Values.autoscaling.s3www.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.s3www.maxReplicas }}
   metrics:
+    {{- if .Values.autoscaling.s3www.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.s3www.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.autoscaling.s3www.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.s3www.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  {{- with .Values.autoscaling.s3www.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}

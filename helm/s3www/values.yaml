@@ -5,6 +5,7 @@
 # Default values for s3www-stack
 global:
   environment: development
+  bucketName: s3www-content  # Single bucket name for both s3www and MinIO
 
 # replicaCount: 1
 
@@ -16,7 +17,7 @@ image:
 
 imagePullSecrets: []
 nameOverride: ""
-fullnameOverride: ""
+fullnameOverride: "s3www"  # Force consistent naming regardless of release name
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -76,21 +77,67 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
-livenessProbe:
-  httpGet:
-    path: /
-    port: http
-readinessProbe:
-  httpGet:
-    path: /
-    port: http
+# Temporarily commented out probes
+# livenessProbe:
+#   httpGet:
+#     path: /
+#     port: http
+# readinessProbe:
+#   httpGet:
+#     path: /
+#     port: http
 
+# Horizontal Pod Autoscaler configuration
 autoscaling:
-  enabled: false
-  minReplicas: 2
-  maxReplicas: 4
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  # s3www HPA configuration
+  s3www:
+    enabled: true  # Enable to auto-scale s3www pods based on metrics
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    annotations: {}
+    # Advanced scaling behavior (optional)
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+        selectPolicy: Max
+  
+  # MinIO HPA configuration  
+  minio:
+    enabled: true  # Enable to auto-scale MinIO pods based on metrics
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 85
+    annotations: {}
+    # Advanced scaling behavior (optional)
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
 
 # Additional volumes on the output Deployment definition.
 volumes: []
@@ -115,10 +162,7 @@ s3www:
   enabled: true
   image: y4m4/s3www:latest
   port: 8080
-  bucket: s3www-content
-  # minReplicas: 2
-  # maxReplicas: 5
-  # targetCPUUtilizationPercentage: 80
+  # Bucket name - references global value
   name: s3www
   replicas: 2
   resources:
@@ -132,30 +176,18 @@ s3www:
     accessKeyName: AWS_ACCESS_KEY_ID
     secretKeyName: AWS_SECRET_ACCESS_KEY
 
-# autoscaling:
-#   s3www:
-#     enabled: true
-#     minReplicas: 2
-#     maxReplicas: 5
-#     targetCPUUtilizationPercentage: 80
-
 minio:
   name: minio
   replicas: 3
-  # minReplicas: 2
-  # maxReplicas: 4
-  # targetCPUUtilizationPercentage: 70
   enabled: true
   image: quay.io/minio/minio:latest
-  # accessKey: minioadmin
-  # secretKey: minioadmin
   accessKey: ""  # used only if existingSecret is not defined
   secretKey: ""
   existingSecret: minio-credentials
   secretKeys:
     accessKeyKey: accesskey
     secretKeyKey: secretkey
-  bucketName: s3www-content
+  # Bucket name - references global value
   port: 9000
   consolePort: 9090
   service:
@@ -183,6 +215,37 @@ minio:
     accessMode: ReadWriteOnce
     size: 1Gi
 
+# Upload job configuration
+uploadJob:
+  cleanupEnabled: true  # Enable cleanup of old upload jobs on upgrade/install
+
 fileToServe: |
   Hello from Helm chart!
+
+# Prometheus monitoring configuration
+prometheus:
+  # Metrics port for s3www application
+  metricsPort: 9091
+  
+  # ServiceMonitor configuration for Prometheus Operator
+  serviceMonitor:
+    enabled: false  # Set to true when metrics are implemented in s3www
+    port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+    annotations: {}
+    selector: {}
+    namespaceSelector: {}
+    relabelings: []
+    metricRelabelings: []
+    tlsConfig: {}
+  
+  # Service annotations for Prometheus scraping (alternative to ServiceMonitor)
+  service:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9091"
+      prometheus.io/path: "/metrics"
 
